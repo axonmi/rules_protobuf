@@ -25,7 +25,7 @@ def go_proto_repositories(
 
 
 PB_COMPILE_DEPS = [
-    "//vendor/github.com/golang/proto:go_default_library",
+    "//vendor/github.com/golang/protobuf:go_default_library",
 ]
 
 GRPC_COMPILE_DEPS = PB_COMPILE_DEPS + [
