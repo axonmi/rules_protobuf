@@ -12,7 +12,7 @@ proto_language(
     grpc_inputs = [
         "@com_github_google_protobuf//:well_known_protos",
         "@com_github_grpc_ecosystem_grpc_gateway_googleapis//:annotations_protos",
-        "@org_golang_google_genproto//googleapis/api/annotations:go_default_library",
+        "//vendor/google.golang.org/genproto/googleapis/api/annotations:go_default_library",
     ],
     grpc_plugin = "@com_github_grpc_ecosystem_grpc_gateway//protoc-gen-grpc-gateway",
     grpc_plugin_name = "grpc-gateway",
@@ -37,7 +37,7 @@ proto_language(
     pb_inputs = [
         "@com_github_google_protobuf//:well_known_protos",
         "@com_github_grpc_ecosystem_grpc_gateway_googleapis//:annotations_protos",
-        "@org_golang_google_genproto//googleapis/api/annotations:go_default_library",
+        "//vendor/google.golang.org/genproto/googleapis/api/annotations:go_default_library",
     ],
     pb_plugin = "@com_github_golang_protobuf//protoc-gen-go",
     pb_plugin_implements_grpc = True,
@@ -58,7 +58,7 @@ proto_language(
     pb_inputs = [
         "@com_github_google_protobuf//:well_known_protos",
         "@com_github_grpc_ecosystem_grpc_gateway_googleapis//:annotations_protos",
-        "@org_golang_google_genproto//googleapis/api/annotations:go_default_library",
+        "//vendor/google.golang.org/genproto/googleapis/api/annotations:go_default_library",
     ],
     pb_plugin = "@com_github_grpc_ecosystem_grpc_gateway//protoc-gen-swagger",
     go_prefix = "//:go_prefix",
