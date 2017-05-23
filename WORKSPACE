@@ -1,4 +1,4 @@
-workspace(name = "org_pubref_rules_protobuf")
+workspace(name = "com_github_axonmi_rules_protobuf")
 
 # ================================================================
 # Go support requires rules_go
