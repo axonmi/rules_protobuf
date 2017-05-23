@@ -18,10 +18,10 @@ def grpc_gateway_proto_repositories(
 GRPC_GATEWAY_DEPS = [
   "//vendor/github.com/grpc-ecosystem/grpc-gateway/runtime:go_default_library",
   "//vendor/github.com/grpc-ecosystem/grpc-gateway/utilities:go_default_library",
-  "//vendor/golang.google.org/genproto/googleapis/api/annotations:go_default_library",
-  "//vendor/golang.google.org/grpc/codes:go_default_library",
-  "//vendor/golang.google.org/grpc/grpclog:go_default_library",
-  "//vendor/golang.google.org/grpc:go_default_library",
+  "//vendor/google.golang.org/genproto/googleapis/api/annotations:go_default_library",
+  "//vendor/google.golang.org/grpc/codes:go_default_library",
+  "//vendor/google.golang.org/grpc/grpclog:go_default_library",
+  "//vendor/google.golang.org/grpc:go_default_library",
   "//vendor/golang.org/x/net/context:go_default_library",
   "//vendor/github.com/golang/glog:go_default_library",
 ]
