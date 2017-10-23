@@ -33,6 +33,7 @@ def _proto_language_impl(ctx):
             grpc_runtime_deps = ctx.files.grpc_runtime_deps,
             go_prefix = go_prefix,
             go_package = ctx.attr.go_package,
+            go_importpath = ctx.attr.go_importpath,
             importmap = ctx.attr.importmap,
         ),
     )
@@ -73,6 +74,8 @@ proto_language_attrs = {
     "go_prefix": attr.label(
         providers = ["go_prefix"],
     ),
+    "go_importpath": attr.string(
+    ),
     "go_package": attr.string(),
     "importmap": attr.string_dict(),
 }
@@ -105,7 +108,7 @@ def _proto_language_deps_impl(ctx):
                 deps.append(file)
 
     return struct(
-        files = set(deps),
+        files = depset(deps),
     )
 
 proto_language_deps = rule(

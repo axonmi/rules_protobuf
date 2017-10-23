@@ -185,6 +185,12 @@ def _build_output_files(run, builder):
       base = _capitalize(base)
     for ext in exts:
       path = _get_relative_dirname(run, ctx.label.package, file)
+
+      genpath = ctx.var["GENDIR"].split("/")
+      lastIndex = len(genpath) - 1
+      if genpath[lastIndex] in path:
+        path = []
+
       path.append(base + ext)
       pbfile = ctx.new_file("/".join(path))
       builder["outputs"] += [pbfile]
@@ -316,7 +322,7 @@ def _build_plugin_out(name, outdir, options, builder):
 
   # If the outdir is external, such as when building
   # :well_known_protos, the protoc command may fail as the directory
-  # bazel-out/local-fastbuild/genfiles/external/com_github_google_protobuf
+  # bazel-out/local-fastbuild/genfiles/external/com_google_protobuf
   # won't necessarily exist.  Add this to the queue of
   # pre-execution commands to create it.
   if outdir.startswith("../..") and not outdir.endswith(".jar"):
@@ -331,8 +337,12 @@ def _build_protobuf_out(run, builder):
   """Build the --{lang}_out option"""
   lang = run.lang
   name = lang.pb_plugin_name or lang.name
-  outdir = builder.get(lang.name + "_outdir", run.outdir)
   options = builder.get(lang.name + "_pb_options", [])
+
+  if run.data.protos[0].path.startswith(run.ctx.var["GENDIR"]):
+    outdir = "."
+  else:
+    outdir = builder.get(lang.name + "_outdir", run.outdir)
 
   _build_plugin_out(name, outdir, options, builder)
 
@@ -341,7 +351,12 @@ def _build_grpc_out(run, builder):
   """Build the --{lang}_out grpc option"""
   lang = run.lang
   name = lang.grpc_plugin_name or "grpc-" + lang.name
-  outdir = builder.get(lang.name + "_outdir", run.outdir)
+
+  if run.data.protos[0].path.startswith(run.ctx.var["GENDIR"]):
+    outdir = "."
+  else:
+    outdir = builder.get(lang.name + "_outdir", run.outdir)
+
   options = builder.get(lang.name + "_grpc_options", [])
 
   _build_plugin_out(name, outdir, options, builder)
@@ -370,7 +385,7 @@ def _get_external_root(ctx):
 
   # This set size must be 0 or 1. (all source files must exist in this
   # workspace or the same external workspace).
-  roots = set(external_roots)
+  roots = depset(external_roots)
   if (ctx.attr.verbose > 2):
     print("external roots: %r" % roots)
   n = len(roots)
@@ -389,6 +404,23 @@ def _get_external_root(ctx):
     return "."
 
 
+def _update_import_paths(ctx, builder):
+  """Updates import paths beginning with 'external' so that they point to external/."""
+  execdir = _get_external_root(ctx)
+  final_imports = []
+  for i in builder["imports"]:
+    final_i = i
+    # Check for imports from external
+    path = i.split("/")
+    if path[0] == 'external':
+      # Ensure that external imports start from root, as external/ does not exist when rule is being
+      # built in an external project.
+      final_i = _get_offset_path(execdir, i)
+    final_imports.append(final_i)
+
+  builder["imports"] = final_imports
+
+
 def _compile(ctx, unit):
 
   execdir = unit.data.execdir
@@ -399,7 +431,7 @@ def _compile(ctx, unit):
   protoc_cmd = [protoc] + list(unit.args) + imports + srcs
   manifest = [f.short_path for f in unit.outputs]
 
-  transitive_units = set()
+  transitive_units = depset()
   for u in unit.data.transitive_units:
     transitive_units = transitive_units | u.inputs
   inputs = list(unit.inputs | transitive_units) + [unit.compiler]
@@ -474,6 +506,8 @@ def _proto_compile_impl(ctx):
 
   if ctx.attr.go_prefix:
     go_prefix = ctx.attr.go_prefix.go_prefix
+  elif ctx.attr.go_importpath:
+    go_prefix = ctx.attr.go_importpath
   else:
     go_prefix = ""
 
@@ -568,7 +602,7 @@ def _proto_compile_impl(ctx):
       _build_output_libdir(run, builder)
     else:
       _build_output_files(run, builder)
-    if run.lang.go_prefix: # golang-specific
+    if run.lang.go_prefix or ctx.attr.go_importpath: # golang-specific
       _build_importmappings(run, builder)
     if run.lang.supports_pb:
       _build_protobuf_invocation(run, builder)
@@ -577,17 +611,18 @@ def _proto_compile_impl(ctx):
       _build_grpc_invocation(run, builder)
       _build_grpc_out(run, builder)
 
+  _update_import_paths(ctx, builder)
 
   # Build final immutable compilation unit for rule and transitive beyond
   unit = struct(
     compiler = ctx.executable.protoc,
     data = data,
     transitive_mappings = builder.get("transitive_mappings", {}),
-    args = set(builder["args"] + ctx.attr.args),
-    imports = set(builder["imports"]),
-    inputs = set(builder["inputs"]),
-    outputs = set(builder["outputs"] + [ctx.outputs.descriptor_set]),
-    commands = set(builder["commands"]),
+    args = depset(builder["args"] + ctx.attr.args),
+    imports = depset(builder["imports"]),
+    inputs = depset(builder["inputs"]),
+    outputs = depset(builder["outputs"] + [ctx.outputs.descriptor_set]),
+    commands = depset(builder["commands"]),
   )
 
   # Run protoc
@@ -597,7 +632,7 @@ def _proto_compile_impl(ctx):
     if run.lang.output_to_jar:
       _build_output_srcjar(run, builder)
 
-  files = set(builder["outputs"])
+  files = depset(builder["outputs"])
 
   return struct(
     files = files,
@@ -625,13 +660,14 @@ proto_compile = rule(
       providers = ["proto_compile_result"]
     ),
     "protoc": attr.label(
-      default = Label("//external:protoc"),
+      default = Label("//external:protocol_compiler"),
       cfg = "host",
       executable = True,
     ),
     "go_prefix": attr.label(
       providers = ["go_prefix"],
     ),
+    "go_importpath": attr.string(),
     "go_package": attr.string(),
     "root": attr.string(),
     "imports": attr.string_list(),

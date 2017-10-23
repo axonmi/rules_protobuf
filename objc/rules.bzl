@@ -17,11 +17,11 @@ def objc_proto_repositories(
                      **kwargs)
 
 PB_COMPILE_DEPS = [
-    "@com_github_google_protobuf//:protobuf_objc",
+    "@com_google_protobuf//:protobuf_objc",
 ]
 
 GRPC_COMPILE_DEPS = PB_COMPILE_DEPS + [
-    "@com_github_grpc_grpc//:grpc_objc",
+    "@com_google_grpc//:grpc_objc",
 ]
 
 def objc_proto_compile(langs = [str(Label("//objc"))], **kwargs):
@@ -82,5 +82,5 @@ def objc_proto_library(
   native.objc_library(
     name = name,
     srcs = srcs + [name + ".pb"],
-    deps = list(set(deps + proto_deps + compile_deps)),
+    deps = depset(deps + proto_deps + compile_deps).to_list(),
     **kwargs)
